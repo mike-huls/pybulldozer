@@ -1,12 +1,12 @@
 import setuptools
-from Cython.Build import cythonize
+# from Cython.Build import cythonize
 
 
 
 # Package Settings
 __package_name__ = "pybulldozer"
 __app_name__ = "pybulldozer"
-__version__ = "0.0.1"
+__version__ = "0.0.3"
 __author__ = 'Mike Huls'
 __license__ = "MIT"
 __maintainer__ = "Mike Huls"
