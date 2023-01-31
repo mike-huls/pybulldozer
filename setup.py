@@ -13,7 +13,7 @@ __maintainer__ = "Mike Huls"
 __email__ = "mikehuls42@gmail.com"
 __status__ = "Development"
 __description__ = "pybulldozer aims to make working with non-relation data files as easy as possible"
-__project_url__ = "https://bitbucket.com/leadq/helpycli"
+__project_url__ = "https://github.com/mike-huls/pybulldozer"
 
 
 # Reads the content of your README.md into a variable to be used in the setup below
