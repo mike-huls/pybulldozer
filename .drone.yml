@@ -1,0 +1,270 @@
+kind: pipeline
+type: docker
+name: Build & Deploy pipeline     # Pipeline name - zelf in te vullen
+
+steps:
+  # -----===== UNITTESTS =====-----
+  - name: Run unittests
+    image: docker-hub.datanext.nl/drone-plugins/helpy-base:3.9
+    pull: always
+    environment:
+      PYPI_USER:
+        from_secret: DNX_PYPI_USER
+      PYPI_PASS:
+        from_secret: DNX_PYPI_PASS
+      PYPI_URL:
+        from_secret: DNX_PYPI_URL
+    commands:
+      - setup_build_environment.sh
+      - helpy pip install -r requirements.txt
+      - helpy testing unittest -v
+
+
+
+  # -----===== PYTHON PACKAGES =====-----
+  # Build package - tag required
+  #- name: Build Package
+  #  image: docker-hub.datanext.nl/drone-plugins/helpy-base:3.9
+  #  pull: always
+  #  environment:
+  #    PYPI_USER:
+  #      from_secret: DNX_PYPI_USER
+  #    PYPI_PASS:
+  #      from_secret: DNX_PYPI_PASS
+  #    PYPI_URL:
+  #      from_secret: DNX_PYPI_URL
+  #  commands:
+  #    - setup_build_environment.sh    # zit in helpy base --> eigen context
+  #    - helpy package build --current-version -v -y
+  #  when:
+  #    ref:
+  #      # specify the tags for which we build a container
+  #      - refs/tags/release-*
+  #      - refs/tags/release/**
+  #      - refs/tags/acceptation-*
+  #      - refs/tags/acceptation/**
+  #      - refs/tags/test-*
+  #      - refs/tags/test/**
+
+
+  # Push python package to PyPi
+  #- name: Publish Package to Pypi
+  #  image: docker-hub.datanext.nl/drone-plugins/helpy-base:3.9
+  #  pull: always
+  #  environment:
+  #    PYPI_USER:
+  #      from_secret: DNX_PYPI_USER
+  #    PYPI_PASS:
+  #      from_secret: DNX_PYPI_PASS
+  #    PYPI_URL:
+  #      from_secret: DNX_PYPI_URL
+  #  commands:
+  #    - setup_build_environment.sh    # zit in helpy base --> eigen context
+  #    - helpy package push -v -y
+  #  when:
+  #    ref:
+  #      # specify the tags for which we build a container
+  #      - refs/tags/release-*
+  #      - refs/tags/release/**
+  #      - refs/tags/acceptation-*
+  #      - refs/tags/acceptation/**
+  #      - refs/tags/test-*
+  #      - refs/tags/test/**
+
+
+  # -----===== DOCKER BUILD AND PUSH IMAGE =====-----
+  # Builds the image and pushes it to dockerhub - tag required
+  #- name: Build & publish container
+  #  image: docker-hub.datanext.nl/drone-plugins/helpy-base:3.9
+  #  pull: always
+  #  environment:
+  #    D_USERNAME:
+  #      from_secret: docker_username
+  #    D_PASSWORD:
+  #      from_secret: docker_password
+  #    PYPI_USER:
+  #      from_secret: DNX_PYPI_USER
+  #    PYPI_PASS:
+  #      from_secret: DNX_PYPI_PASS
+  #    PYPI_URL:
+  #      from_secret: DNX_PYPI_URL
+  #  volumes:
+  #  - name: ssh_temp_volume
+  #    path: /drone/src/.ssh
+  #  - name: dockersock
+  #    path: /var/run/docker.sock
+  #  commands:
+  #  - setup_build_environment.sh
+  #  - docker login docker-hub.datanext.nl --username $${D_USERNAME} --password $${D_PASSWORD}
+  #  - DOCKER_TAG=$(bash /opt/helpy/bin/drone-helper.sh print-tag-short) && helpy docker build $${DOCKER_TAG} -y -v
+  #  - DOCKER_TAG=$(bash /opt/helpy/bin/drone-helper.sh print-tag-short-latest) && helpy docker push $${DOCKER_TAG} -y -v
+  #  when:
+  #    ref:
+  #    - refs/tags/release-*
+  #    - refs/tags/release/**
+  #    - refs/tags/acceptation-*
+  #    - refs/tags/acceptation/**
+  #    - refs/tags/test-*
+  #    - refs/tags/test/**
+
+
+  # -----===== PROMOTING BUILDS ON DRONE.DEV.DATENEXT.NL ====-----
+  # Promote/deploy your image. This enables the promotion of builds on drone.dev.datanext.nl - tag required
+  #- name: Promote/deploy build
+  #  image: docker-hub.datanext.nl/docker/drone_deploy_tool:latest
+  #  pull: always
+  #  environment:
+  #    GIT_SSH_KEY:
+  #      from_secret: GIT_SSH_KEY
+  #    RABBITMQ_VM14_HOSTNAME:
+  #      from_secret: RABBITMQ_VM14_HOSTNAME_DEPLOYMENTS
+  #    RABBITMQ_VM14_VHOST:
+  #      from_secret: RABBITMQ_VM14_VHOST_DEPLOYMENTS
+  #    RABBITMQ_VM14_QUEUE:
+  #      from_secret: RABBITMQ_VM14_QUEUE_DEPLOYMENTS
+  #    RABBITMQ_VM14_USER:
+  #      from_secret: RABBITMQ_VM14_USERNAME_DEPLOYMENTS
+  #    RABBITMQ_VM14_PASS:
+  #      from_secret: RABBITMQ_VM14_PASSWORD_DEPLOYMENTS
+  #    RABBITMQ_VM15_HOSTNAME:
+  #      from_secret: RABBITMQ_VM15_HOSTNAME_DEPLOYMENTS
+  #    RABBITMQ_VM15_VHOST:
+  #      from_secret: RABBITMQ_VM15_VHOST_DEPLOYMENTS
+  #    RABBITMQ_VM15_QUEUE:
+  #      from_secret: RABBITMQ_VM15_QUEUE_DEPLOYMENTS
+  #    RABBITMQ_VM15_USER:
+  #      from_secret: RABBITMQ_VM15_USERNAME_DEPLOYMENTS
+  #    RABBITMQ_VM15_PASS:
+  #      from_secret: RABBITMQ_VM15_PASSWORD_DEPLOYMENTS
+  #  volumes:
+  #  - name: ssh_temp_volume
+  #    path: /root/.ssh
+  #  commands:
+  #  - echo Deployment target = $DRONE_DEPLOY_TO
+  #  - /app/publish.sh $DRONE_DEPLOY_TO "/root/.ssh/id_rsa_deploymentkey"
+  #  when:
+  #    event:
+  #      - promote
+  #    ref:
+  #    - refs/tags/release-*
+  #    - refs/tags/release/**
+  #    - refs/tags/acceptation-*
+  #    - refs/tags/acceptation/**
+  #    - refs/tags/test-*
+  #    - refs/tags/test/**
+
+
+  # -----===== DPG =====-----
+  # Copies sourcecode to dpg - release tag required - only for DPG code
+  #- name: Push release sourcecode to dpg
+  #  image: docker-hub.datanext.nl/drone-plugins/dpg_codepush:latest
+  #  pull: always
+  #  environment:
+  #    # Optionally execute a script before copying the source, to allow you to delete some files
+  #    #DPG_CODESHARE_EXECUTE_SCRIPT_PRE: ./my-optional-bash-script.sh
+  #    DPG_CODESHARE_EXECUTE_SCRIPT_PRE: ./.drone.pre-push.sh
+  #    # Common settings:
+  #    DPG_PUSH_ENABLED: true
+  #    DPG_CODESHARE_SCRATCH_VOLUME: /scratch
+  #    DPG_CODESHARE_KEY:
+  #      from_secret: DPG_CODESHARE_KEY
+  #  volumes:
+  #  - name: scratch
+  #    path: /scratch
+  #  commands:
+  #  - bash /app/execute.sh
+  #  when:
+  #    ref:
+  #    - refs/tags/release-*
+  #    - refs/tags/release/**
+
+
+  # -----===== SLACK MESSAGING =====-----
+  # Send Slack message after build
+  - name: Build result - Slack notification if tag == release
+    image: plugins/slack
+    pull: if-not-exists
+    settings:
+      webhook:
+        from_secret: slack_webhook_url
+      channel: dd-builds            # SET CHANNEL HERE
+      # https://plugins.drone.io/plugins/slack
+      template: >
+        {{#success build.status}}
+          <{{build.link}}|Pipeline {{repo.name}} succeeded>.
+          Repo: {{repo.name}}, branch: {{build.branch}}, build {{build.number}}
+          Click <{{build.link}}|here> to promote with target {{repo.name}}]
+          Author: {{build.author.name}}
+        {{else}}
+          <{{build.link}}|Pipeline {{repo.name}}> failed. Click link for more information.
+          Repo: {{repo.name}}, branch: {{build.branch}}, build {{build.number}}
+          Author: {{build.author.name}}
+        {{/success}}
+    when:
+      status: [ success, failure ]
+      ref:
+        - refs/tags/release-*
+        - refs/tags/release/**
+        - refs/tags/acceptation-*
+        - refs/tags/acceptation/**
+        - refs/tags/test-*
+        - refs/tags/test/**
+      event:
+        exclude:
+          - promote
+
+  # Send Slack message after promotion
+  - name: Promotion result - Slack notification if tag == release
+    image: plugins/slack
+    pull: if-not-exists
+    settings:
+      webhook:
+        from_secret: slack_webhook_url
+      channel: dd-builds            # SET CHANNEL HERE
+      # https://plugins.drone.io/plugins/slack
+      template: >
+        {{#success build.status}}
+          <{{build.link}}|{{repo.name}} successfully deployed>.
+          Repo: {{repo.name}}, branch: {{build.branch}}, build {{build.number}}
+          Click <{{build.link}}|here> for more information
+          Author: {{build.author.name}}
+        {{else}}
+          <{{build.link}}|Deployment of docker image {{repo.name}} Failed. Click for more information>.
+          Repo: {{repo.name}}, branch: {{build.branch}}, build {{build.number}}
+          Author: {{build.author.name}}
+        {{/success}}
+    when:
+      status: [ success, failure ]
+      ref:
+        - refs/tags/release-*
+        - refs/tags/release/**
+        - refs/tags/acceptation-*
+        - refs/tags/acceptation/**
+        - refs/tags/test-*
+        - refs/tags/test/**
+      event:
+        - promote
+
+
+  # Sends a slack message any time
+  #- name: Regular Slack message
+  #  image: plugins/slack
+  #  pull: if-not-exists
+  #  settings:
+  #    webhook:
+  #      from_secret: slack_webhook_url
+  #    channel: dd-builds                                    # SET CHANNEL HERE
+  #    template: I've just created a new project with drone  # SET MESSAGE HERE
+
+
+image_pull_secrets:
+- dockerhub_login_json
+
+volumes:
+- name: scratch
+  temp: {}
+- name: ssh_temp_volume
+  temp: {}
+- name: dockersock
+  host:
+    path: /var/run/docker.sock
